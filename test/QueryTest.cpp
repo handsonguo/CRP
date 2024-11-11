@@ -47,6 +47,8 @@
 #include <memory>
 #include <iomanip>
 #include <fstream>
+#include <random>
+#include <functional>
 
 using namespace std;
 
@@ -75,15 +77,15 @@ int main(int argc, char *argv[]) {
 	vector<CRP::Metric> metrics(1);
 	if (metricType == "dist") {
 		std::ifstream stream(metricPath);
-		CRP::Metric::read(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::DistanceFunction()));
+		CRP::Metric::read_bin(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::DistanceFunction()));
 		stream.close();
 	} else if (metricType == "hop") {
 		std::ifstream stream(metricPath);
-		CRP::Metric::read(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::HopFunction()));
+		CRP::Metric::read_bin(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::HopFunction()));
 		stream.close();
 	} else if (metricType == "time") {
 		std::ifstream stream(metricPath);
-		CRP::Metric::read(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::TimeFunction()));
+		CRP::Metric::read_bin(stream, metrics[0], std::unique_ptr<CRP::CostFunction>(new CRP::TimeFunction()));
 		stream.close();
 	} else {
 		std::cout << "ERROR: Unknown metic type " << metricType << std::endl;
@@ -94,7 +96,7 @@ int main(int argc, char *argv[]) {
 
 	std::mt19937 rand;
 	auto vertex_rand = std::bind(std::uniform_int_distribution<CRP::index>(0, graph.numberOfVertices()-1),
-	                           mt19937(get_micro_time()));
+	                           std::mt19937(get_micro_time()));
 
 	CRP::PathUnpacker pathUnpacker(graph, overlayGraph, metrics);
 	CRP::CRPQueryUni query(graph, overlayGraph, metrics, pathUnpacker);

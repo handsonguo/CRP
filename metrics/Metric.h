@@ -218,6 +218,35 @@ public:
 		return true;
 	}
 
+        static bool write_bin(std::ofstream &stream, const Metric &metric) {
+		if (!stream.is_open()) return false;
+		std::cout << "Writing weights" << std::endl;
+		//全部写入uint32_t
+		uint32_t magic = 0x007F; //以后用来判断字节序是否相同
+		stream.write((char*)(&magic), sizeof(magic));
+		uint32_t weights_size = metric.weights.getWeights().size();
+		stream.write((char*)(&weights_size), sizeof(weights_size));
+		uint32_t turnTablePtr_size = metric.turnTablePtr.size();
+		stream.write((char*)(&turnTablePtr_size), sizeof(turnTablePtr_size));
+		uint32_t turnTableDiffs_size = metric.turnTableDiffs.size();
+		stream.write((char*)(&turnTableDiffs_size), sizeof(turnTableDiffs_size));
+	
+	        std::vector<weight> weights = metric.weights.getWeights();	
+		for (index i = 0; i < weights.size(); ++i) {
+			uint32_t val = weights[i];
+			stream.write((char*)(&val), sizeof(val));
+		}
+		for (index i = 0; i < metric.turnTablePtr.size(); ++i) {
+			uint32_t val = metric.turnTablePtr[i];
+			stream.write((char*)(&val), sizeof(val));
+		}
+		for (index i = 0; i < metric.turnTableDiffs.size(); ++i) {
+			uint32_t val = metric.turnTableDiffs[i];
+			stream.write((char*)(&val), sizeof(val));
+		}
+		return true;
+	}
+
 	/**
 	 * Reads @a metric from input stream @a stream and sets the cost function of this metric to @a costFunction.
 	 * @param stream
@@ -264,11 +293,43 @@ public:
 		return true;
 	}
 
+        static bool read_bin(std::ifstream &stream, Metric &metric, std::unique_ptr<CostFunction> costFunction) {
+		if (!stream.is_open()) return false;
+		//read magic
+		//TODO: need to use try/catch to handle exceptions
+		uint32_t magic = 0;
+		stream.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+		if (magic != _MAGIC) {
+			std::cout << "file format or byte order not match" << std::endl;
+			//TODO: need to handle byte order mismatch
+			return false;
+		}
+		uint32_t weights_size = 0;
+		uint32_t turnTablePtr_size = 0;
+		uint32_t turnTableDiffs_size = 0;
+		stream.read(reinterpret_cast<char*>(&weights_size), sizeof(weights_size));
+		stream.read(reinterpret_cast<char*>(&turnTablePtr_size), sizeof(turnTablePtr_size));
+		stream.read(reinterpret_cast<char*>(&turnTableDiffs_size), sizeof(turnTableDiffs_size));
+		
+		std::vector<weight> w(weights_size);
+		std::vector<index> turnTablePtr = std::vector<index>(turnTablePtr_size);
+		std::vector<int> turnTableDiffs = std::vector<int>(turnTableDiffs_size);
+		stream.read(reinterpret_cast<char*>(&w[0]), sizeof(weight)*weights_size);
+		stream.read(reinterpret_cast<char*>(&turnTablePtr[0]), sizeof(index)*turnTablePtr_size);
+		stream.read(reinterpret_cast<char*>(&turnTableDiffs[0]), sizeof(int)*turnTableDiffs_size);
+	        metric.weights = OverlayWeights(w);
+		metric.turnTablePtr = turnTablePtr;
+		metric.turnTableDiffs = turnTableDiffs;
+		metric.costFunction = std::move(costFunction);	
+		return true;
+	}	
+
 private:
 	std::unique_ptr<CostFunction> costFunction;
 	OverlayWeights weights;
 	std::vector<index> turnTablePtr;
 	std::vector<int> turnTableDiffs;
+	static const uint32_t _MAGIC = 0x007F;
 };
 
 } /* namespace CRP */

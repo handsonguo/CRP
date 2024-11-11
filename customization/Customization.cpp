@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
 		for (auto &pair : costFunctions) {
 			CRP::Metric m(graph, overlayGraph, std::move(pair.second));
 			std::ofstream stream(metricPath + pair.first);
-			CRP::Metric::write(stream, m);
+			CRP::Metric::write_bin(stream, m);
 			stream.close();
 		}
 	} else {
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
 
 		CRP::Metric m(graph, overlayGraph, std::move(it->second));
 		std::ofstream stream(metricPath + it->first);
-		CRP::Metric::write(stream, m);
+		CRP::Metric::write_bin(stream, m);
 		stream.close();
 	}
 
